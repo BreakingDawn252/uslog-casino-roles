@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Casino Roster Tool</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1c2126; --muted:#5f6b76; --line:#d9dee3; --accent:#2e7d57; --warn:#b23a3a; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#12161b; --card:#1b2129; --text:#e8ecef; --muted:#9aa4ae; --line:#2c3540; --accent:#4fbf87; --warn:#ff7a7a; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.6 system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p.lead { color: var(--muted); margin: 0 0 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+  label { display:block; font-weight:600; margin-bottom:4px; }
+  small { color: var(--muted); }
+  textarea, input { width:100%; font: 14px/1.5 ui-monospace, Consolas, monospace; color:var(--text); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:8px; }
+  textarea { min-height: 140px; resize: vertical; }
+  button { font: inherit; font-weight: 600; background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 8px 16px; cursor: pointer; }
+  button.secondary { background: transparent; color: var(--text); border: 1px solid var(--line); }
+  .row { display:flex; gap:8px; flex-wrap: wrap; align-items:center; margin-top: 12px; }
+  pre { white-space: pre-wrap; word-break: break-all; margin: 0; }
+  .ok { color: var(--accent); } .ng { color: var(--warn); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Casino Roster Tool</h1>
+  <p class="lead">表示名から名簿ファイル（roles.json）を作ります。名前はこのブラウザの中だけで変換され、どこにも送信されません。</p>
+
+  <div class="card">
+    <div class="grid">
+      <div><label for="owners">Owners</label><textarea id="owners" placeholder="1行に1人"></textarea><small>オーナー（ディーラーも兼ねる）</small></div>
+      <div><label for="dealers">Dealers</label><textarea id="dealers" placeholder="1行に1人"></textarea><small>ディーラー</small></div>
+      <div><label for="banned">Banned</label><textarea id="banned" placeholder="1行に1人"></textarea><small>出入り禁止（卓に座れない）</small></div>
+    </div>
+    <div class="row">
+      <label for="salt" style="margin:0">Salt</label>
+      <input id="salt" value="uslog-casino" style="max-width:220px">
+      <button id="build">roles.json を作る</button>
+      <button id="copy" class="secondary">コピー</button>
+      <span id="copied" class="ok"></span>
+    </div>
+  </div>
+
+  <div class="card"><label>roles.json</label><pre id="out">（ここに出力されます）</pre></div>
+
+  <div class="card">
+    <label for="check">表示名が名簿に載っているか確認</label>
+    <div class="row" style="margin-top:0"><input id="check" placeholder="表示名"><button id="checkBtn" class="secondary">確認</button></div>
+    <p id="checkOut"></p>
+  </div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const lines = id => $(id).value.split(/\r?\n/).map(s => s.trim()).filter(s => s.length > 0);
+async function sha256Hex(text) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+async function hashAll(names, salt) {
+  const out = [];
+  for (const n of names) out.push(await sha256Hex(salt + "|" + n));
+  return out;
+}
+$("build").onclick = async () => {
+  const salt = $("salt").value.trim() || "uslog-casino";
+  const json = {
+    hash: "sha256",
+    salt: salt,
+    updated: new Date().toISOString().slice(0, 10),
+    owners: await hashAll(lines("owners"), salt),
+    dealers: await hashAll(lines("dealers"), salt),
+    banned: await hashAll(lines("banned"), salt)
+  };
+  $("out").textContent = JSON.stringify(json, null, 2);
+  $("copied").textContent = "";
+};
+$("copy").onclick = async () => {
+  try { await navigator.clipboard.writeText($("out").textContent); $("copied").textContent = "コピーしました"; }
+  catch (e) { $("copied").textContent = "コピーできませんでした。手で選択してください"; }
+};
+$("checkBtn").onclick = async () => {
+  const name = $("check").value.trim();
+  if (!name) return;
+  try {
+    const res = await fetch("roles.json?t=" + Date.now());
+    const roster = await res.json();
+    const h = await sha256Hex((roster.salt || "uslog-casino") + "|" + name);
+    const role = roster.owners.includes(h) ? "Owner" : roster.dealers.includes(h) ? "Dealer" : roster.banned.includes(h) ? "Banned" : null;
+    $("checkOut").innerHTML = role ? `<span class="ok">公開中の名簿に ${role} として載っています</span>` : `<span class="ng">公開中の名簿には載っていません</span>`;
+  } catch (e) {
+    $("checkOut").innerHTML = `<span class="ng">公開中の名簿を読めませんでした</span>`;
+  }
+};
+</script>
+</body>
+</html>
