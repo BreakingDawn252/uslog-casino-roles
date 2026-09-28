@@ -1,10 +1,10 @@
 # USLOG Casino 名簿
 
-カジノワールドのオーナー・ディーラー・出入り禁止の名簿です。GitHub Pages で公開し、ワールドが入室時と10分ごとに読みます。
+カジノワールドのオーナー・ディーラー・出入り禁止の名簿です。GitHub Pages で公開し、ワールドが入室時と定期的にに読みます。
 `*.github.io` は VRChat の信頼済みドメインなので、プレイヤーは設定を変えなくても読めます。
 
-- 名簿: `https://<アカウント>.github.io/uslog-casino-roles/roles.json`
-- 作成ツール: `https://<アカウント>.github.io/uslog-casino-roles/`
+- 名簿: `https://BreakingDawn252.github.io/uslog-casino-roles/roles.json`
+- 作成ツール: `https://BreakingDawn252.github.io/uslog-casino-roles/`
 
 ## 名簿の更新手順
 
