@@ -1,8 +1,10 @@
 {
   "hash": "sha256",
   "salt": "uslog-casino",
-  "updated": "2026-09-25",
-  "owners": [],
+  "updated": "2026-09-29",
+  "owners": [
+    "3f3b219507ecc29aa246c98e1349c59f73c1fb4abc64ac5929ebfa357ad4660c"
+  ],
   "dealers": [],
   "banned": []
 }
